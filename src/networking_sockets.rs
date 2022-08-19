@@ -2,7 +2,7 @@ use crate::networking_sockets_callback;
 use crate::networking_types::{
     ListenSocketEvent, MessageNumber, NetConnectionEnd, NetworkingAvailability,
     NetworkingAvailabilityError, NetworkingConfigEntry, NetworkingIdentity, NetworkingMessage,
-    SendFlags, SteamIpAddr,
+    SendFlags, SteamIpAddr, NetConnectionInfo,
 };
 use crate::{CallbackHandle, Inner, SResult};
 #[cfg(test)]
@@ -82,11 +82,12 @@ impl<Manager: 'static> NetworkingSockets<Manager> {
     /// If you need to set any initial config options, pass them here.  See
     /// SteamNetworkingConfigValue_t for more about why this is preferable to
     /// setting the options "immediately" after creation.
-    pub fn connect_by_ip_address(
+        pub fn connect_by_ip_address(
         &self,
         address: SocketAddr,
         options: impl IntoIterator<Item = NetworkingConfigEntry>,
-    ) -> Result<NetConnection<Manager>, InvalidHandle> {
+    ) -> Result<NetConnection<Manager>, InvalidHandle>
+    {
         let handle = unsafe {
             let address = SteamIpAddr::from(address);
             let options: Vec<_> = options.into_iter().map(|x| x.into()).collect();
@@ -103,8 +104,8 @@ impl<Manager: 'static> NetworkingSockets<Manager> {
             Ok(NetConnection::new_independent(
                 handle,
                 self.sockets,
-                self.inner.clone(),
-            ))
+                self.inner.clone())
+            )
         }
     }
 
@@ -422,7 +423,7 @@ pub struct NetConnection<Manager> {
     inner: Arc<Inner<Manager>>,
     socket: Option<Arc<InnerSocket<Manager>>>,
     _callback_handle: Option<Arc<CallbackHandle<Manager>>>,
-    _event_receiver: Option<Receiver<()>>,
+    pub event_receiver: Option<Receiver<NetConnectionInfo>>,
 
     is_handled: bool,
 }
@@ -443,7 +444,7 @@ impl<Manager: 'static> NetConnection<Manager> {
             inner,
             socket: Some(socket),
             _callback_handle: None,
-            _event_receiver: None,
+            event_receiver: None,
             is_handled: false,
         }
     }
@@ -468,7 +469,7 @@ impl<Manager: 'static> NetConnection<Manager> {
             inner,
             socket: None,
             _callback_handle: Some(callback),
-            _event_receiver: Some(receiver),
+            event_receiver: Some(receiver),
             is_handled: false,
         }
     }
@@ -486,7 +487,7 @@ impl<Manager: 'static> NetConnection<Manager> {
             inner,
             socket: None,
             _callback_handle: None,
-            _event_receiver: None,
+            event_receiver: None,
             is_handled: false,
         }
     }

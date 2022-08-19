@@ -1103,9 +1103,9 @@ impl From<sys::SteamNetConnectionInfo_t> for NetConnectionInfo {
 ///
 /// Also note that callbacks will be posted when connections are created and destroyed by your own API calls.
 #[derive(Debug, Clone)]
-pub(crate) struct NetConnectionStatusChanged {
+pub struct NetConnectionStatusChanged {
     pub(crate) connection: sys::HSteamNetConnection,
-    pub(crate) connection_info: NetConnectionInfo,
+    pub connection_info: NetConnectionInfo,
 
     // Debug is intentionally ignored during dead-code analysis
     #[allow(dead_code)]

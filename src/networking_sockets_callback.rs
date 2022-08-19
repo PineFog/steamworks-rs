@@ -92,5 +92,18 @@ impl<Manager: 'static> ConnectionCallbackHandler<Manager> {
 
     fn independent_connection_callback(&self, _event: NetConnectionStatusChanged) {
         // TODO: Handle event for independent connections
+        // println!("independent_connection_callback");
+        if let Some(inner) = self.inner.upgrade() {
+            let data = inner.networking_sockets_data.lock().unwrap();
+            // println!("listening connections count: {}", data.independent_connections.len());
+            for (_connection_handle, sender) in data.independent_connections.iter() {
+                // println!("sending event");
+                if let Ok(_event) = sender.send(_event.clone().connection_info.clone()) {
+                    // println!("event sent");
+                } else {
+                    // println!("event not sent");
+                }
+            }
+        }
     }
 }
