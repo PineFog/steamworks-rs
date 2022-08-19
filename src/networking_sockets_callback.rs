@@ -16,17 +16,14 @@ pub(crate) fn get_or_create_connection_callback<Manager: 'static>(
 ) -> Arc<CallbackHandle<Manager>> {
     let mut network_socket_data = inner.networking_sockets_data.lock().unwrap();
     if let Some(callback) = network_socket_data.connection_callback.upgrade() {
-        println!("upgraded");
         callback
     } else {
-        println!("not upgraded");
         let handler = ConnectionCallbackHandler {
             inner: Arc::downgrade(&inner),
             sockets,
         };
         let callback = unsafe {
             register_callback(&inner, move |event: NetConnectionStatusChanged| {
-                println!("internal handler: {:?}", event);
                 handler.callback(event);
             })
         };
@@ -48,10 +45,8 @@ unsafe impl<Manager> Sync for ConnectionCallbackHandler<Manager> {}
 impl<Manager: 'static> ConnectionCallbackHandler<Manager> {
     pub(crate) fn callback(&self, event: NetConnectionStatusChanged) {
         if let Some(socket) = event.connection_info.listen_socket() {
-            // println!("first");
             self.listen_socket_callback(socket, event);
         } else {
-            // println!("second");
             self.independent_connection_callback(event);
         }
     }
@@ -110,7 +105,5 @@ impl<Manager: 'static> ConnectionCallbackHandler<Manager> {
                 }
             }
         }
-        
-
     }
 }
