@@ -5,6 +5,7 @@ extern crate bitflags;
 #[macro_use]
 extern crate lazy_static;
 
+use networking_types::{NetConnectionInfo};
 #[cfg(feature = "raw-bindings")]
 pub use steamworks_sys as sys;
 #[cfg(not(feature = "raw-bindings"))]
@@ -105,7 +106,7 @@ struct NetworkingSocketsData<Manager> {
         ),
     >,
     /// Connections to a remote listening port
-    independent_connections: HashMap<sys::HSteamNetConnection, Sender<()>>,
+    independent_connections: HashMap<sys::HSteamNetConnection, Sender<NetConnectionInfo>>,
     connection_callback: Weak<CallbackHandle<Manager>>,
 }
 

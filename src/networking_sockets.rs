@@ -1,8 +1,8 @@
-use crate::networking_sockets_callback;
+use crate::{networking_sockets_callback};
 use crate::networking_types::{
     ListenSocketEvent, MessageNumber, NetConnectionEnd, NetworkingAvailability,
     NetworkingAvailabilityError, NetworkingConfigEntry, NetworkingIdentity, NetworkingMessage,
-    SendFlags, SteamIpAddr,
+    SendFlags, SteamIpAddr, NetConnectionInfo,
 };
 use crate::{CallbackHandle, Inner, SResult};
 #[cfg(test)]
@@ -11,7 +11,7 @@ use std::convert::TryInto;
 use std::ffi::CString;
 use std::net::SocketAddr;
 use std::sync::mpsc::Receiver;
-use std::sync::Arc;
+use std::sync::{Arc};
 
 use steamworks_sys as sys;
 
@@ -82,11 +82,19 @@ impl<Manager: 'static> NetworkingSockets<Manager> {
     /// If you need to set any initial config options, pass them here.  See
     /// SteamNetworkingConfigValue_t for more about why this is preferable to
     /// setting the options "immediately" after creation.
-    pub fn connect_by_ip_address(
+    // pub fn connect_by_ip_address<C, F>(
+        pub fn connect_by_ip_address(
         &self,
         address: SocketAddr,
         options: impl IntoIterator<Item = NetworkingConfigEntry>,
-    ) -> Result<NetConnection<Manager>, InvalidHandle> {
+    ) -> Result<NetConnection<Manager>, InvalidHandle>
+    //     connection_handler: F
+    //     // connection_handler: Weak<CallbackHandle<Manager>>
+    // ) -> Result<(NetConnection<Manager>, Arc<CallbackHandle<Manager>>), InvalidHandle>
+    // where 
+    // C: Callback,
+    // F: FnMut(C) + Send + 'static
+    {
         let handle = unsafe {
             let address = SteamIpAddr::from(address);
             let options: Vec<_> = options.into_iter().map(|x| x.into()).collect();
@@ -100,11 +108,27 @@ impl<Manager: 'static> NetworkingSockets<Manager> {
         if handle == sys::k_HSteamNetConnection_Invalid {
             Err(InvalidHandle)
         } else {
+            // let mut network_socket_data = self.inner.networking_sockets_data.lock().unwrap();
+            // let callback = Arc::new(connection_handler);
+            
+            // let callback = unsafe {
+            //     register_callback(&self.inner.clone(), connection_handler)
+            // };
+            // let callback = Arc::new(callback);
+            // network_socket_data.connection_callback = Arc::downgrade(&callback);
+            // drop(network_socket_data);
+            // println!("this far");
+
+            // Ok((NetConnection::new_independent(
+            //     handle,
+            //     self.sockets,
+            //     self.inner.clone())
+            // , callback))
             Ok(NetConnection::new_independent(
                 handle,
                 self.sockets,
-                self.inner.clone(),
-            ))
+                self.inner.clone())
+            )
         }
     }
 
@@ -399,6 +423,7 @@ impl<Manager> Drop for InnerSocket<Manager> {
     fn drop(&mut self) {
         // There's no documentation for this return value, so it's most likely false when hSocket is invalid
         // The handle should always be valid in our case.
+        println!("this might be bad");
         let _was_successful = unsafe {
             sys::SteamAPI_ISteamNetworkingSockets_CloseListenSocket(self.sockets, self.handle)
         };
@@ -422,7 +447,7 @@ pub struct NetConnection<Manager> {
     inner: Arc<Inner<Manager>>,
     socket: Option<Arc<InnerSocket<Manager>>>,
     _callback_handle: Option<Arc<CallbackHandle<Manager>>>,
-    _event_receiver: Option<Receiver<()>>,
+    pub event_receiver: Option<Receiver<NetConnectionInfo>>,
 
     is_handled: bool,
 }
@@ -443,7 +468,7 @@ impl<Manager: 'static> NetConnection<Manager> {
             inner,
             socket: Some(socket),
             _callback_handle: None,
-            _event_receiver: None,
+            event_receiver: None,
             is_handled: false,
         }
     }
@@ -468,7 +493,7 @@ impl<Manager: 'static> NetConnection<Manager> {
             inner,
             socket: None,
             _callback_handle: Some(callback),
-            _event_receiver: Some(receiver),
+            event_receiver: Some(receiver),
             is_handled: false,
         }
     }
@@ -486,7 +511,7 @@ impl<Manager: 'static> NetConnection<Manager> {
             inner,
             socket: None,
             _callback_handle: None,
-            _event_receiver: None,
+            event_receiver: None,
             is_handled: false,
         }
     }
@@ -593,6 +618,7 @@ impl<Manager: 'static> NetConnection<Manager> {
             None => std::ptr::null(),
             Some(s) => s.as_ptr(),
         };
+        println!("connection closing yo");
         self.handle_connection();
         unsafe {
             sys::SteamAPI_ISteamNetworkingSockets_CloseConnection(
