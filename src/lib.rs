@@ -5,7 +5,7 @@ extern crate bitflags;
 #[macro_use]
 extern crate lazy_static;
 
-use networking_types::{NetConnectionInfo};
+use networking_types::NetConnectionInfo;
 #[cfg(feature = "raw-bindings")]
 pub use steamworks_sys as sys;
 #[cfg(not(feature = "raw-bindings"))]

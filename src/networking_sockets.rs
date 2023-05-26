@@ -1,8 +1,8 @@
 use crate::networking_sockets_callback;
 use crate::networking_types::{
-    ListenSocketEvent, MessageNumber, NetConnectionEnd, NetworkingAvailability,
+    ListenSocketEvent, MessageNumber, NetConnectionEnd, NetConnectionInfo, NetworkingAvailability,
     NetworkingAvailabilityError, NetworkingConfigEntry, NetworkingIdentity, NetworkingMessage,
-    SendFlags, SteamIpAddr, NetConnectionInfo,
+    SendFlags, SteamIpAddr,
 };
 use crate::{CallbackHandle, Inner, SResult};
 #[cfg(test)]
@@ -82,12 +82,11 @@ impl<Manager: 'static> NetworkingSockets<Manager> {
     /// If you need to set any initial config options, pass them here.  See
     /// SteamNetworkingConfigValue_t for more about why this is preferable to
     /// setting the options "immediately" after creation.
-        pub fn connect_by_ip_address(
+    pub fn connect_by_ip_address(
         &self,
         address: SocketAddr,
         options: impl IntoIterator<Item = NetworkingConfigEntry>,
-    ) -> Result<NetConnection<Manager>, InvalidHandle>
-    {
+    ) -> Result<NetConnection<Manager>, InvalidHandle> {
         let handle = unsafe {
             let address = SteamIpAddr::from(address);
             let options: Vec<_> = options.into_iter().map(|x| x.into()).collect();
@@ -104,8 +103,8 @@ impl<Manager: 'static> NetworkingSockets<Manager> {
             Ok(NetConnection::new_independent(
                 handle,
                 self.sockets,
-                self.inner.clone())
-            )
+                self.inner.clone(),
+            ))
         }
     }
 
