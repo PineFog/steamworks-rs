@@ -1,6 +1,6 @@
 use super::*;
 #[cfg(test)]
-use serial_test_derive::serial;
+use serial_test::serial;
 
 /// Access to the steam user interface
 pub struct User<Manager> {
@@ -17,6 +17,11 @@ impl<Manager> User<Manager> {
     /// Returns the level of the current user
     pub fn level(&self) -> u32 {
         unsafe { sys::SteamAPI_ISteamUser_GetPlayerSteamLevel(self.user) as u32 }
+    }
+
+    /// Returns whether the current user's Steam client is connected to the Steam servers.
+    pub fn logged_on(&self) -> bool {
+        unsafe { sys::SteamAPI_ISteamUser_BLoggedOn(self.user) }
     }
 
     /// Retrieve an authentication session ticket that can be sent
@@ -247,6 +252,29 @@ unsafe impl Callback for ValidateAuthTicketResponse {
                 }
                 _ => unreachable!(),
             },
+        }
+    }
+}
+
+// Called when a microtransaction authorization response is received
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct MicroTxnAuthorizationResponse {
+    pub app_id: AppId,
+    pub order_id: u64,
+    pub authorized: bool,
+}
+
+unsafe impl Callback for MicroTxnAuthorizationResponse {
+    const ID: i32 = 152;
+    const SIZE: i32 = std::mem::size_of::<sys::MicroTxnAuthorizationResponse_t>() as i32;
+
+    unsafe fn from_raw(raw: *mut c_void) -> Self {
+        let val = &mut *(raw as *mut sys::MicroTxnAuthorizationResponse_t);
+        MicroTxnAuthorizationResponse {
+            app_id: val.m_unAppID.into(),
+            order_id: val.m_ulOrderID.into(),
+            authorized: val.m_bAuthorized == 1,
         }
     }
 }

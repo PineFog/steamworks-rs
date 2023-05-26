@@ -29,6 +29,7 @@ pub use crate::friends::*;
 pub use crate::input::*;
 pub use crate::matchmaking::*;
 pub use crate::networking::*;
+pub use crate::remote_play::*;
 pub use crate::remote_storage::*;
 pub use crate::server::*;
 pub use crate::ugc::*;
@@ -48,6 +49,7 @@ pub mod networking_sockets;
 mod networking_sockets_callback;
 pub mod networking_types;
 pub mod networking_utils;
+mod remote_play;
 mod remote_storage;
 mod server;
 mod ugc;
@@ -363,6 +365,18 @@ impl<Manager> Client<Manager> {
         }
     }
 
+    /// Returns an accessor to the steam remote play interface
+    pub fn remote_play(&self) -> RemotePlay<Manager> {
+        unsafe {
+            let rp = sys::SteamAPI_SteamRemotePlay_v001();
+            debug_assert!(!rp.is_null());
+            RemotePlay {
+                rp,
+                inner: self.inner.clone(),
+            }
+        }
+    }
+
     /// Returns an accessor to the steam remote storage interface
     pub fn remote_storage(&self) -> RemoteStorage<Manager> {
         unsafe {
@@ -544,7 +558,7 @@ impl GameId {
 
 #[cfg(test)]
 mod tests {
-    use serial_test_derive::serial;
+    use serial_test::serial;
 
     use super::*;
 
